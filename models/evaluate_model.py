@@ -1,0 +1,1 @@
+### This script evaluates the model's performance based on metrics like accuracy, precision, recall, and F1-score. ###

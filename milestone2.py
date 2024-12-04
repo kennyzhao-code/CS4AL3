@@ -1,1 +1,0 @@
-#alan is gay

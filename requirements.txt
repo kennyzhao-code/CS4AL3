@@ -1,0 +1,8 @@
+"""
+A list of dependencies that can be installed using pip. It should contain libraries like:
+pandas for data manipulation
+scikit-learn for machine learning algorithms
+matplotlib and seaborn for visualizations (if needed later)
+numpy for numerical operations
+astroquery for fetching data if needed
+"""

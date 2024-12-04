@@ -1,0 +1,1 @@
+### Python script for model training, including the definition of the model architecture, the loss function (e.g., binary cross-entropy), and the optimizer (e.g., gradient descent). ###
