@@ -25,10 +25,10 @@ def assign_complex_labels(data):
             50 <= koi_period <= 500 and
             koi_impact <= 1 and
             koi_slogg >= 4.0):
-            labels.append(0)  # 0 represents Habitable
+            labels.append(1)  # 1 represents Habitable
         else:
             # Non-Habitable criteria
-            labels.append(1)  # 1 represents Not Habitable
+            labels.append(0)  # 0 represents Not Habitable
     
     data['Labels'] = labels
     return data
