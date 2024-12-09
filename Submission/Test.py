@@ -131,13 +131,6 @@ def train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=10
                 f"Validation Accuracy: {val_accuracy.item():.4f}"
             )
 
-    """
-    This snippet of code contains the testing code for performing
-    predictions on the test set and evaluating the model's performance.
-
-    The previous code is required in order for this portion to run correctly.
-    """
-
     # Final evaluation on the test set
     model.eval()
     with torch.no_grad():
@@ -151,13 +144,13 @@ def train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=10
 
 
 # Preprocessing and data preparation
-data_path = '../data/useddata/labeled_exoplanet_data.csv'
+data_path = './labeled_exoplanet_data.csv'
 preprocessor = ExoplanetPreprocessor(data_path)
 X_processed, y, feature_names = preprocessor.preprocess()
 
 # Convert to PyTorch tensors
 X_tensor = torch.tensor(X_processed, dtype=torch.float32)
-y_tensor = torch.tensor(y.values, dtype=torch.long)
+y_tensor = torch.tensor(y.values, dtype=torch.long)  # Ensure targets are long type
 
 # Split the original dataset into 80% training and 20% test
 X_train_val, X_test, y_train_val, y_test = train_test_split(
