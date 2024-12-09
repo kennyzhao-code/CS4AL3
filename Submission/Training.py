@@ -318,3 +318,5 @@ print(f"Test data shape: {X_test.shape}")
 
 # Train and evaluate the model
 train_model(model, X_train, y_train, X_val, y_val, X_test, y_test)
+
+torch.save(model.state_dict(), 'model.pkl')
