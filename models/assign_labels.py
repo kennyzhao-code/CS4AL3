@@ -34,7 +34,7 @@ def assign_complex_labels(data):
     return data
 
 # Usage
-data_path = '../data/mergeddata/merged_NASAExo_PHL.csv'
+data_path = '../data/mergeddata/final_NASAExo_PHL.csv'
 data = pd.read_csv(data_path)
 data_with_labels = assign_complex_labels(data)
 data_with_labels.to_csv('../data/useddata/labeled_exoplanet_data.csv', index=False)
