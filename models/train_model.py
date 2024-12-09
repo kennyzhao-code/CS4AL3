@@ -109,7 +109,7 @@ def train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=10
         # Training phase
         model.train()
         optimizer.zero_grad()
-        outputs = model.forward(X_train)  # Use the forward method explicitly
+        outputs = model.forward(X_train)
         loss = criterion(outputs, y_train)
         loss.backward()
         optimizer.step()
@@ -117,7 +117,7 @@ def train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=10
         # Validation phase
         model.eval()
         with torch.no_grad():
-            val_outputs = model.forward(X_val)  # Use the forward method explicitly
+            val_outputs = model.forward(X_val)
             val_loss = criterion(val_outputs, y_val)
             _, val_predicted = torch.max(val_outputs, 1)
             val_accuracy = (val_predicted == y_val).float().mean()
@@ -134,7 +134,7 @@ def train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=10
     # Final evaluation on the test set
     model.eval()
     with torch.no_grad():
-        test_outputs = model.forward(X_test)  # Use the forward method explicitly
+        test_outputs = model.forward(X_test)
         _, test_predicted = torch.max(test_outputs, 1)
         test_accuracy = (test_predicted == y_test).float().mean()
 
