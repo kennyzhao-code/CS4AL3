@@ -14,7 +14,7 @@ def assign_complex_labels(data):
         
         # Check for missing data
         if any(pd.isna([koi_prad, koi_teq, koi_steff, koi_srad, koi_period, koi_impact, koi_slogg])):
-            labels.append(2)  # Unknown
+            labels.append(2)  # 2 represents Unknown
             continue
         
         # Habitable criteria
@@ -25,15 +25,15 @@ def assign_complex_labels(data):
             50 <= koi_period <= 500 and
             koi_impact <= 1 and
             koi_slogg >= 4.0):
-            labels.append(0)  # Habitable
+            labels.append(0)  # 0 represents Habitable
         else:
             # Non-Habitable criteria
-            labels.append(1)  # Not Habitable
+            labels.append(1)  # 1 represents Not Habitable
     
     data['Labels'] = labels
     return data
 
-# Usage example
+# Usage
 data_path = 'data/mergeddata/merged_NASAExo_PHL.csv'
 data = pd.read_csv(data_path)
 data_with_labels = assign_complex_labels(data)
