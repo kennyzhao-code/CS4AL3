@@ -23,8 +23,7 @@ def assign_complex_labels(data):
             4000 <= koi_steff <= 7000 and
             0.8 <= koi_srad <= 1.5 and
             50 <= koi_period <= 500 and
-            koi_impact <= 1 and
-            koi_slogg >= 4.0):
+            koi_impact <= 1 and koi_slogg >= 4.0):
             labels.append(1)  # 1 represents Habitable
         else:
             # Non-Habitable criteria
@@ -37,4 +36,4 @@ def assign_complex_labels(data):
 data_path = '../data/mergeddata/final_NASAExo_PHL.csv'
 data = pd.read_csv(data_path)
 data_with_labels = assign_complex_labels(data)
-data_with_labels.to_csv('../data/useddata/labeled_exoplanet_data.csv', index=False)
+data_with_labels.to_csv('../data/useddata/labeled_exoplanet_data1.csv', index=False)
