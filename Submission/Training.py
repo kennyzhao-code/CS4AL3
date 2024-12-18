@@ -114,44 +114,50 @@ finalMerge.fillna(0, inplace=True)
 # Save the final cleaned dataset
 finalMerge.to_csv('./final_NASAExo_PHL.csv', index=False)
 
-def assign_complex_labels(data):
+import pandas as pd
+
+def assign_labels(data):
     labels = []
     for _, row in data.iterrows():
         # Extract relevant features
         koi_prad = row['koi_prad']
         koi_teq = row['koi_teq']
-        koi_steff = row['koi_steff']
-        koi_srad = row['koi_srad']
-        koi_period = row['koi_period']
-        koi_impact = row['koi_impact']
-        koi_slogg = row['koi_slogg']
+        P_FLUX = row['P_FLUX']
         
         # Check for missing data
-        if any(pd.isna([koi_prad, koi_teq, koi_steff, koi_srad, koi_period, koi_impact, koi_slogg])):
-            labels.append(2)  # 2 represents Unknown
+        if any(pd.isna([koi_prad, koi_teq, P_FLUX])):
+            labels.append(2)  # Unknown due to missing data
             continue
-        
-        # Habitable criteria
-        if (0.5 <= koi_prad <= 2 and
-            200 <= koi_teq <= 350 and
-            4000 <= koi_steff <= 7000 and
-            0.8 <= koi_srad <= 1.5 and
-            50 <= koi_period <= 500 and
-            koi_impact <= 1 and
-            koi_slogg >= 4.0):
-            labels.append(1)  # 1 represents Habitable
+
+        # Habitable criteria (very relaxed)
+        if (0.3 <= koi_prad <= 20 and  # Includes sub-Earth to Jupiter-sized planets
+            10 <= koi_teq <= 800 and   # Very broad temperature range
+            0.001 <= P_FLUX <= 20):    # Very wide flux range
+            labels.append(1)  # Habitable
+
+        # Unknown criteria (edge cases)
+        elif (20 < koi_prad <= 30 or  # Very large planets that could host moons
+              800 < koi_teq <= 1000 or  # Extremely hot planets with potential atmospheres
+              0.0001 <= P_FLUX < 0.001 or 20 < P_FLUX <= 30):  # Marginal flux values
+            labels.append(2)  # Unknown
+
+        # Not Habitable criteria
+        elif (koi_prad > 30 or  # Extremely large planets
+              koi_teq < 10 or koi_teq > 1000 or  # Extreme temperatures
+              P_FLUX < 0.0001 or P_FLUX > 30):   # Extremely low or high flux
+            labels.append(0)  # Not Habitable
+
+        # Default to Unknown for safety
         else:
-            # Non-Habitable criteria
-            labels.append(0)  # 0 represents Not Habitable
-    
+            labels.append(2)
+
     data['Labels'] = labels
     return data
 
-# Usage
-data_path = './final_NASAExo_PHL.csv'
+data_path = '../data/mergeddata/final_NASAExo_PHL.csv'
 data = pd.read_csv(data_path)
-data_with_labels = assign_complex_labels(data)
-data_with_labels.to_csv('./labeled_exoplanet_data.csv', index=False)
+data_with_labels = assign_labels(data)
+data_with_labels.to_csv('../data/useddata/labeled_exoplanet_datatestevenbetter.csv', index=False)
 
 # # Set probabilities for the labels to skew towards 0
 # data_with_labels['Labels'] = np.random.choice(
