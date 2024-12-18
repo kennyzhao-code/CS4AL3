@@ -5,6 +5,7 @@ import torch.optim as optim
 import pandas as pd
 import numpy as np
 import joblib
+import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.impute import SimpleImputer
@@ -152,6 +153,35 @@ data = pd.read_csv(data_path)
 data_with_labels = assign_complex_labels(data)
 data_with_labels.to_csv('./labeled_exoplanet_data.csv', index=False)
 
+# # Set probabilities for the labels to skew towards 0
+# data_with_labels['Labels'] = np.random.choice(
+#     [0, 1, 2], size=len(data_with_labels), replace=True, p=[0.85, 0.10, 0.05]
+# )
+
+
+# # Export the updated dataset to a new CSV file
+# data_with_labels.to_csv('./randomized_labeled_data.csv', index=False)
+
+# # Export only the Labels column to a new CSV file
+# data_with_labels[['Labels']].to_csv('./labels_only.csv', index=False)
+
+# # Randomize Labels
+# num_rows = len(data)  # Use the number of rows from your original data
+# random_labels = np.random.choice([0, 1, 2], size=num_rows, replace=True)
+
+# # Create a DataFrame with the randomized Labels column
+# random_labels_df = pd.DataFrame({'Labels': random_labels})
+
+# # Export the DataFrame to a CSV file
+# random_labels_df.to_csv('./random_labels.csv', index=False)
+
+# Visualize label distribution
+labels_count = data_with_labels['Labels'].value_counts()
+labels_count.plot(kind='bar', title='Label Distribution')
+plt.xlabel('Labels')
+plt.ylabel('Count')
+plt.show()
+
 class ExoplanetPreprocessor:
     def __init__(self, data_path):
         # Read the data
@@ -240,9 +270,17 @@ class ExoplanetNN(nn.Module):
         return x
 
 def train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=100, lr=0.001):
+    training_losses = []
+    validation_losses = []
+
     # Loss and optimizer
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
+
+    # Lists to store loss and accuracy values for plotting
+    train_losses = []
+    val_losses = []
+    val_accuracies = []
 
     # Training loop
     for epoch in range(epochs):
@@ -253,6 +291,7 @@ def train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=10
         loss = criterion(outputs, y_train)
         loss.backward()
         optimizer.step()
+        train_losses.append(loss.item())
 
         # Validation phase
         model.eval()
@@ -261,6 +300,8 @@ def train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=10
             val_loss = criterion(val_outputs, y_val)
             _, val_predicted = torch.max(val_outputs, 1)
             val_accuracy = (val_predicted == y_val).float().mean()
+            val_losses.append(val_loss.item())
+            val_accuracies.append(val_accuracy.item())
 
         # Print training and validation metrics
         if (epoch + 1) % 10 == 0:
@@ -277,16 +318,38 @@ def train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=10
     """
 
     # Final evaluation on the test set
-    # model.eval()
-    # with torch.no_grad():
-    #     test_outputs = model.forward(X_test)
-    #     _, test_predicted = torch.max(test_outputs, 1)
-    #     test_accuracy = (test_predicted == y_test).float().mean()
+    model.eval()
+    with torch.no_grad():
+        test_outputs = model.forward(X_test)
+        _, test_predicted = torch.max(test_outputs, 1)
+        test_accuracy = (test_predicted == y_test).float().mean()
 
-    # print(f"\nTest Accuracy: {test_accuracy.item():.4f}")
-    # print("\nClassification Report:")
-    # print(classification_report(y_test.numpy(), test_predicted.numpy()))
+    print(f"\nTest Accuracy: {test_accuracy.item():.4f}")
+    print("\nClassification Report:")
+    print(classification_report(y_test.numpy(), test_predicted.numpy()))
 
+    # Plotting loss curves
+    plt.figure(figsize=(12, 6))
+
+    # Plot training and validation loss
+    plt.subplot(1, 2, 1)
+    plt.plot(range(1, epochs + 1), train_losses, label='Training Loss')
+    plt.plot(range(1, epochs + 1), val_losses, label='Validation Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Loss Curve')
+    plt.legend()
+
+    # Plot validation accuracy
+    plt.subplot(1, 2, 2)
+    plt.plot(range(1, epochs + 1), val_accuracies, label='Validation Accuracy', color='orange')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.title('Validation Accuracy Curve')
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()
 
 # Preprocessing and data preparation
 data_path = './labeled_exoplanet_data.csv'
