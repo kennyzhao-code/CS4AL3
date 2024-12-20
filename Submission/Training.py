@@ -150,10 +150,10 @@ def assign_labels_balanced(data):
     return data
 
 
-data_path = '../data/mergeddata/final_NASAExo_PHL.csv'
+data_path = './final_NASAExo_PHL.csv'
 data = pd.read_csv(data_path)
 data_with_labels = assign_labels_balanced(data)
-data_with_labels.to_csv('../data/useddata/labeled_exoplanet_datatestmorefeatures1.csv', index=False)
+data_with_labels.to_csv('./labeled_exoplanet_datatestmorefeatures1.csv', index=False)
 
 
 # # Set probabilities for the labels to skew towards 0
@@ -248,12 +248,13 @@ class ExoplanetNN(nn.Module):
         self.fc1 = nn.Linear(input_size, 128)
         self.fc2 = nn.Linear(128, 64)
         self.fc3 = nn.Linear(64, 32)
-        
+        self.fc4 = nn.Linear(32, 16)
+
         # Output layer for tertiary classification
-        self.output = nn.Linear(32, 3)
+        self.output = nn.Linear(16, 3)
         
         # Dropout layer to prevent overfitting
-        self.dropout = nn.Dropout(0.3)
+        self.dropout = nn.Dropout(0.2)
         
     def forward(self, x):
         # First hidden layer with ReLU activation and dropout
@@ -266,19 +267,25 @@ class ExoplanetNN(nn.Module):
         
         # Third hidden layer with ReLU activation
         x = F.relu(self.fc3(x))
+        x = self.dropout(x)
+
+        # Fourth hidden layer with ReLU activation
+        x = F.relu(self.fc4(x))
+        x = self.dropout(x)
         
         # Output layer for class logits (no activation if using CrossEntropyLoss)
         x = self.output(x)
 
         return x
 
-def train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=100, lr=0.001):
-    training_losses = []
-    validation_losses = []
-
+def train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=300, lr=0.001, patience=10):
     # Loss and optimizer
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
+
+    # Early stopping variables
+    best_val_loss = float('inf')
+    patience_counter = 0
 
     # Lists to store loss and accuracy values for plotting
     train_losses = []
@@ -306,19 +313,31 @@ def train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=10
             val_losses.append(val_loss.item())
             val_accuracies.append(val_accuracy.item())
 
+        # Early stopping
+        if val_loss.item() < best_val_loss:
+            best_val_loss = val_loss.item()
+            patience_counter = 0
+            
+            # Save the best model
+            best_model_state = model.state_dict()
+        else:
+            # Increment counter if no improvement
+            patience_counter += 1
+            if patience_counter >= patience:
+                print(f"\nEarly stopping triggered at epoch {epoch + 1}")
+                break
+
         # Print training and validation metrics
         if (epoch + 1) % 10 == 0:
             print(
-                f"Epoch [{epoch+1}/{epochs}], "
+                f"Epoch [{epoch + 1}/{epochs}], "
                 f"Training Loss: {loss.item():.4f}, "
                 f"Validation Loss: {val_loss.item():.4f}, "
                 f"Validation Accuracy: {val_accuracy.item():.4f}"
             )
 
-    """
-    This is used for performing prediction/inference on test set.
-    This is implemented in the Test.py file.
-    """
+    # Restore the best model state
+    model.load_state_dict(best_model_state)
 
     # Final evaluation on the test set
     model.eval()
@@ -327,17 +346,18 @@ def train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=10
         _, test_predicted = torch.max(test_outputs, 1)
         test_accuracy = (test_predicted == y_test).float().mean()
 
-    print(f"\nTest Accuracy: {test_accuracy.item():.4f}")
+    print(f"\nTest Accuracy: {test_accuracy.item() * 100:.2f}%")
     print("\nClassification Report:")
     print(classification_report(y_test.numpy(), test_predicted.numpy()))
 
     # Plotting loss curves
+    actual_epochs = len(train_losses)  # Use actual number of epochs
     plt.figure(figsize=(12, 6))
 
     # Plot training and validation loss
     plt.subplot(1, 2, 1)
-    plt.plot(range(1, epochs + 1), train_losses, label='Training Loss')
-    plt.plot(range(1, epochs + 1), val_losses, label='Validation Loss')
+    plt.plot(range(1, actual_epochs + 1), train_losses, label='Training Loss')
+    plt.plot(range(1, actual_epochs + 1), val_losses, label='Validation Loss')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.title('Loss Curve')
@@ -345,7 +365,7 @@ def train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=10
 
     # Plot validation accuracy
     plt.subplot(1, 2, 2)
-    plt.plot(range(1, epochs + 1), val_accuracies, label='Validation Accuracy', color='orange')
+    plt.plot(range(1, actual_epochs + 1), val_accuracies, label='Validation Accuracy', color='orange')
     plt.xlabel('Epoch')
     plt.ylabel('Accuracy')
     plt.title('Validation Accuracy Curve')
@@ -355,7 +375,7 @@ def train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=10
     plt.show()
 
 # Preprocessing and data preparation
-data_path = './labeled_exoplanet_data.csv'
+data_path = './labeled_exoplanet_datatestmorefeatures1.csv'
 preprocessor = ExoplanetPreprocessor(data_path)
 X_processed, y, feature_names = preprocessor.preprocess()
 
