@@ -255,6 +255,112 @@ class ExoplanetNN(nn.Module):
         x = self.output(x)
 
         return x
+    
+# Multi logistic regression model used for comparison reasons
+class ExoplanetMLR(nn.Module):
+    def __init__(self, input_dim):
+        super(ExoplanetMLR, self).__init__() # to inherit the properties of the parent class nn.Module for pytorch
+        # logistic regression model with a single layer (neural network with 1 layer)
+        self.fc = nn.Linear(input_dim, 1) 
+
+    def architecture(self, x):
+        return torch.sigmoid(self.fc(x))  # sigmoid function, used commonly with logisticregresion
+
+
+def train_model_MLR(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=300, lr=0.001, patience=10):
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=lr)
+
+    # Early stopping variables
+    best_val_loss = float('inf')
+    patience_counter = 0
+
+    # Lists to store loss and accuracy values for plotting
+    train_losses = []
+    val_losses = []
+    val_accuracies = []
+
+    # Training loop
+    for epoch in range(epochs):
+        # Training phase
+        model.train()
+        optimizer.zero_grad()
+        outputs = model.forward(X_train)
+        loss = criterion(outputs, y_train)
+        loss.backward()
+        optimizer.step()
+        train_losses.append(loss.item())
+
+        # Validation phase
+        model.eval()
+        with torch.no_grad():
+            val_outputs = model.forward(X_val)
+            val_loss = criterion(val_outputs, y_val)
+            _, val_predicted = torch.max(val_outputs, 1)
+            val_accuracy = (val_predicted == y_val).float().mean()
+            val_losses.append(val_loss.item())
+            val_accuracies.append(val_accuracy.item())
+
+        # Early stopping
+        if val_loss.item() < best_val_loss:
+            best_val_loss = val_loss.item()
+            patience_counter = 0
+
+            # Save the best model
+            best_model_state = model.state_dict()
+        else:
+            # Increment counter if no improvement
+            patience_counter += 1
+            if patience_counter >= patience:
+                print(f"\nEarly stopping triggered at epoch {epoch + 1}")
+                break
+
+        # Print training and validation metrics
+        if (epoch + 1) % 10 == 0:
+            print(
+                f"Epoch [{epoch + 1}/{epochs}], "
+                f"Training Loss: {loss.item():.4f}, "
+                f"Validation Loss: {val_loss.item():.4f}, "
+                f"Validation Accuracy: {val_accuracy.item():.4f}"
+            )
+
+    # Restore the best model state
+    model.load_state_dict(best_model_state)
+
+    # Final evaluation on the test set
+    model.eval()
+    with torch.no_grad():
+        test_outputs = model.forward(X_test)
+        _, test_predicted = torch.max(test_outputs, 1)
+        test_accuracy = (test_predicted == y_test).float().mean()
+
+    print(f"\nTest Accuracy: {test_accuracy.item() * 100:.2f}%")
+    print("\nClassification Report:")
+    print(classification_report(y_test.numpy(), test_predicted.numpy()))
+
+    # Plotting loss curves
+    actual_epochs = len(train_losses)
+    plt.figure(figsize=(12, 6))
+
+    # Plot training and validation loss
+    plt.subplot(1, 2, 1)
+    plt.plot(range(1, actual_epochs + 1), train_losses, label='Training Loss')
+    plt.plot(range(1, actual_epochs + 1), val_losses, label='Validation Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Loss Curve')
+    plt.legend()
+
+    # Plot validation accuracy
+    plt.subplot(1, 2, 2)
+    plt.plot(range(1, actual_epochs + 1), val_accuracies, label='Validation Accuracy', color='orange')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.title('Validation Accuracy Curve')
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()
 
 def train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=300, lr=0.001, patience=10):
     # Loss and optimizer
@@ -352,37 +458,37 @@ def train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=30
     plt.tight_layout()
     plt.show()
 
-def test_hyperparameters(model, X_train, y_train, X_val, y_val, X_test, y_test, learning_rates, epochs_list):
-    results = []
+# def test_hyperparameters(model, X_train, y_train, X_val, y_val, X_test, y_test, learning_rates, epochs_list):
+#     results = []
 
-    for lr, epochs in itertools.product(learning_rates, epochs_list):
-        print(f"\nTesting model with learning rate={lr} and epochs={epochs}")
+#     for lr, epochs in itertools.product(learning_rates, epochs_list):
+#         print(f"\nTesting model with learning rate={lr} and epochs={epochs}")
         
-        # Initialize a new instance of the model for each combination
-        model = ExoplanetNN(input_size=X_train.shape[1])
+#         # Initialize a new instance of the model for each combination
+#         model = ExoplanetNN(input_size=X_train.shape[1])
         
-        # Train the model
-        print(f"Training model with learning rate={lr}, epochs={epochs}")
-        train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=epochs, lr=lr)
+#         # Train the model
+#         print(f"Training model with learning rate={lr}, epochs={epochs}")
+#         train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=epochs, lr=lr)
 
-        # Evaluate on the test set
-        model.eval()
-        with torch.no_grad():
-            test_outputs = model.forward(X_test)
-            _, test_predicted = torch.max(test_outputs, 1)
-            test_accuracy = (test_predicted == y_test).float().mean().item()
+#         # Evaluate on the test set
+#         model.eval()
+#         with torch.no_grad():
+#             test_outputs = model.forward(X_test)
+#             _, test_predicted = torch.max(test_outputs, 1)
+#             test_accuracy = (test_predicted == y_test).float().mean().item()
         
-        results.append((lr, epochs, test_accuracy))
-        print(f"Test Accuracy for learning rate={lr}, epochs={epochs}: {test_accuracy:.4f}")
+#         results.append((lr, epochs, test_accuracy))
+#         print(f"Test Accuracy for learning rate={lr}, epochs={epochs}: {test_accuracy:.4f}")
 
-    # Sort results by accuracy
-    results.sort(key=lambda x: x[2], reverse=True)
+#     # Sort results by accuracy
+#     results.sort(key=lambda x: x[2], reverse=True)
 
-    print("\nBest Hyperparameters:")
-    for lr, epochs, accuracy in results[:5]: # Top 5 results
-        print(f"Learning Rate: {lr}, Epochs: {epochs}, Accuracy: {accuracy:.4f}")
+#     print("\nBest Hyperparameters:")
+#     for lr, epochs, accuracy in results[:5]: # Top 5 results
+#         print(f"Learning Rate: {lr}, Epochs: {epochs}, Accuracy: {accuracy:.4f}")
 
-    return results
+#     return results
 
 # Preprocessing and data preparation
 data_path = './labeled_exoplanet_datatestmorefeatures1.csv'
@@ -407,10 +513,10 @@ X_train, X_val, y_train, y_val = train_test_split(
 learning_rates = [0.0001, 0.001, 0.01, 0.1]
 epochs_list = [50, 100, 200, 300]
 
-# Test the hyperparameters
-results = test_hyperparameters(ExoplanetNN(input_size=X_processed.shape[1]), 
-                               X_train, y_train, X_val, y_val, X_test, y_test, 
-                               learning_rates, epochs_list)
+# # Test the hyperparameters
+# results = test_hyperparameters(ExoplanetNN(input_size=X_processed.shape[1]), 
+#                                X_train, y_train, X_val, y_val, X_test, y_test, 
+#                                learning_rates, epochs_list)
 
 # Initialize the model
 model = ExoplanetNN(input_size=X_processed.shape[1])
@@ -424,6 +530,6 @@ print(f"Test data shape: {X_test.shape}")
 ### Found that learning rate = 0.001 and epochs = 300 give the best results ###
 
 # Train and evaluate the model
-train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=300, lr=0.001)
+train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=200, lr=0.001)
 
 torch.save(model.state_dict(), 'model.pkl')
