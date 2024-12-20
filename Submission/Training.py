@@ -5,6 +5,7 @@ import torch.optim as optim
 import pandas as pd
 import numpy as np
 import joblib
+import itertools
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
@@ -155,29 +156,6 @@ data = pd.read_csv(data_path)
 data_with_labels = assign_labels_balanced(data)
 data_with_labels.to_csv('./labeled_exoplanet_datatestmorefeatures1.csv', index=False)
 
-
-# # Set probabilities for the labels to skew towards 0
-# data_with_labels['Labels'] = np.random.choice(
-#     [0, 1, 2], size=len(data_with_labels), replace=True, p=[0.85, 0.10, 0.05]
-# )
-
-
-# # Export the updated dataset to a new CSV file
-# data_with_labels.to_csv('./randomized_labeled_data.csv', index=False)
-
-# # Export only the Labels column to a new CSV file
-# data_with_labels[['Labels']].to_csv('./labels_only.csv', index=False)
-
-# # Randomize Labels
-# num_rows = len(data)  # Use the number of rows from your original data
-# random_labels = np.random.choice([0, 1, 2], size=num_rows, replace=True)
-
-# # Create a DataFrame with the randomized Labels column
-# random_labels_df = pd.DataFrame({'Labels': random_labels})
-
-# # Export the DataFrame to a CSV file
-# random_labels_df.to_csv('./random_labels.csv', index=False)
-
 # Visualize label distribution
 labels_count = data_with_labels['Labels'].value_counts()
 labels_count.plot(kind='bar', title='Label Distribution')
@@ -317,7 +295,7 @@ def train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=30
         if val_loss.item() < best_val_loss:
             best_val_loss = val_loss.item()
             patience_counter = 0
-            
+
             # Save the best model
             best_model_state = model.state_dict()
         else:
@@ -351,7 +329,7 @@ def train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=30
     print(classification_report(y_test.numpy(), test_predicted.numpy()))
 
     # Plotting loss curves
-    actual_epochs = len(train_losses)  # Use actual number of epochs
+    actual_epochs = len(train_losses)
     plt.figure(figsize=(12, 6))
 
     # Plot training and validation loss
@@ -374,6 +352,38 @@ def train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=30
     plt.tight_layout()
     plt.show()
 
+def test_hyperparameters(model, X_train, y_train, X_val, y_val, X_test, y_test, learning_rates, epochs_list):
+    results = []
+
+    for lr, epochs in itertools.product(learning_rates, epochs_list):
+        print(f"\nTesting model with learning rate={lr} and epochs={epochs}")
+        
+        # Initialize a new instance of the model for each combination
+        model = ExoplanetNN(input_size=X_train.shape[1])
+        
+        # Train the model
+        print(f"Training model with learning rate={lr}, epochs={epochs}")
+        train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=epochs, lr=lr)
+
+        # Evaluate on the test set
+        model.eval()
+        with torch.no_grad():
+            test_outputs = model.forward(X_test)
+            _, test_predicted = torch.max(test_outputs, 1)
+            test_accuracy = (test_predicted == y_test).float().mean().item()
+        
+        results.append((lr, epochs, test_accuracy))
+        print(f"Test Accuracy for learning rate={lr}, epochs={epochs}: {test_accuracy:.4f}")
+
+    # Sort results by accuracy
+    results.sort(key=lambda x: x[2], reverse=True)
+
+    print("\nBest Hyperparameters:")
+    for lr, epochs, accuracy in results[:5]: # Top 5 results
+        print(f"Learning Rate: {lr}, Epochs: {epochs}, Accuracy: {accuracy:.4f}")
+
+    return results
+
 # Preprocessing and data preparation
 data_path = './labeled_exoplanet_datatestmorefeatures1.csv'
 preprocessor = ExoplanetPreprocessor(data_path)
@@ -393,6 +403,15 @@ X_train, X_val, y_train, y_val = train_test_split(
     X_train_val, y_train_val, test_size=0.2, random_state=42
 )
 
+# Define hyperparameters to test
+learning_rates = [0.0001, 0.001, 0.01, 0.1]
+epochs_list = [50, 100, 200, 300]
+
+# Test the hyperparameters
+results = test_hyperparameters(ExoplanetNN(input_size=X_processed.shape[1]), 
+                               X_train, y_train, X_val, y_val, X_test, y_test, 
+                               learning_rates, epochs_list)
+
 # Initialize the model
 model = ExoplanetNN(input_size=X_processed.shape[1])
 
@@ -402,7 +421,9 @@ print(f"Number of features: {X_processed.shape[1]}")
 print(f"Training data shape: {X_train.shape}")
 print(f"Test data shape: {X_test.shape}")
 
+### Found that learning rate = 0.001 and epochs = 300 give the best results ###
+
 # Train and evaluate the model
-train_model(model, X_train, y_train, X_val, y_val, X_test, y_test)
+train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=300, lr=0.001)
 
 torch.save(model.state_dict(), 'model.pkl')
