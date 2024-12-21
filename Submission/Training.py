@@ -115,7 +115,7 @@ finalMerge.fillna(0, inplace=True)
 # Save the final cleaned dataset
 finalMerge.to_csv('./final_NASAExo_PHL.csv', index=False)
 
-def assign_labels_balanced(data):
+def assign_labels(data):
     labels = []
     for _, row in data.iterrows():
         # Extract relevant features
@@ -123,8 +123,8 @@ def assign_labels_balanced(data):
         P_TEMP_EQUIL = row.get('P_TEMP_EQUIL', None)
         P_FLUX = row.get('P_FLUX', None)
         P_PERIOD = row.get('P_PERIOD', None)
-        S_RADIUS = row.get('S_RADIUS', None)
         P_MASS_EST = row.get('P_MASS_EST', None)
+        S_RADIUS = row.get('S_RADIUS', None)
 
         # Check for missing data
         criteria = [
@@ -133,6 +133,7 @@ def assign_labels_balanced(data):
             (0.01 <= P_FLUX <= 4) if P_FLUX is not None else False,
             (5 <= P_PERIOD <= 2000) if P_PERIOD is not None else False,
             (0.1 <= P_MASS_EST <= 20) if P_MASS_EST is not None else False,
+            (0.5 <= S_RADIUS <= 2.0) if S_RADIUS is not None else False,
         ]
 
         # Habitable: At least 4 of the criteria must be satisfied
@@ -150,11 +151,10 @@ def assign_labels_balanced(data):
     data['Labels'] = labels
     return data
 
-
-data_path = './final_NASAExo_PHL.csv'
+data_path = '../data/mergeddata/final_NASAExo_PHL.csv'
 data = pd.read_csv(data_path)
-data_with_labels = assign_labels_balanced(data)
-data_with_labels.to_csv('./labeled_exoplanet_datatestmorefeatures1.csv', index=False)
+data_with_labels = assign_labels(data)
+data_with_labels.to_csv('../data/useddata/labeled_exoplanet_datatestwsradcsv', index=False)
 
 # Visualize label distribution
 labels_count = data_with_labels['Labels'].value_counts()
