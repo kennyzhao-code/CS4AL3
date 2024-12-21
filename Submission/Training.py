@@ -458,38 +458,6 @@ def train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=30
     plt.tight_layout()
     plt.show()
 
-# def test_hyperparameters(model, X_train, y_train, X_val, y_val, X_test, y_test, learning_rates, epochs_list):
-#     results = []
-
-#     for lr, epochs in itertools.product(learning_rates, epochs_list):
-#         print(f"\nTesting model with learning rate={lr} and epochs={epochs}")
-        
-#         # Initialize a new instance of the model for each combination
-#         model = ExoplanetNN(input_size=X_train.shape[1])
-        
-#         # Train the model
-#         print(f"Training model with learning rate={lr}, epochs={epochs}")
-#         train_model(model, X_train, y_train, X_val, y_val, X_test, y_test, epochs=epochs, lr=lr)
-
-#         # Evaluate on the test set
-#         model.eval()
-#         with torch.no_grad():
-#             test_outputs = model.forward(X_test)
-#             _, test_predicted = torch.max(test_outputs, 1)
-#             test_accuracy = (test_predicted == y_test).float().mean().item()
-        
-#         results.append((lr, epochs, test_accuracy))
-#         print(f"Test Accuracy for learning rate={lr}, epochs={epochs}: {test_accuracy:.4f}")
-
-#     # Sort results by accuracy
-#     results.sort(key=lambda x: x[2], reverse=True)
-
-#     print("\nBest Hyperparameters:")
-#     for lr, epochs, accuracy in results[:5]: # Top 5 results
-#         print(f"Learning Rate: {lr}, Epochs: {epochs}, Accuracy: {accuracy:.4f}")
-
-#     return results
-
 # Preprocessing and data preparation
 data_path = './labeled_exoplanet_datatestmorefeatures1.csv'
 preprocessor = ExoplanetPreprocessor(data_path)
